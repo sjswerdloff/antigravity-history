@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "antigravity-history"
+version = "0.2.6"
+description = "Export and recover your Google Antigravity conversations."
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Neo", email = "neo1027144@gmail.com"},
+]
+keywords = [
+    "antigravity", "antigravity-export", "antigravity-conversation-extractor",
+    "export-antigravity-conversations", "antigravity-chat-history",
+    "backup-antigravity", "save-antigravity-chat", "antigravity-thinking-export",
+    "antigravity-recovery", "antigravity-obsidian", "antigravity-backup-tool",
+    "ai-conversation-export", "chat-export", "conversation-history",
+    "ai-thinking", "code-assistant-export",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Chat",
+    "Topic :: System :: Archiving :: Backup",
+    "Topic :: Text Processing :: Markup :: Markdown",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities",
+    "Environment :: Console",
+    "Operating System :: Microsoft :: Windows",
+]
+dependencies = [
+    "requests>=2.28.0",
+    "rich>=13.0.0",
+    "typer>=0.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.1.0",
+    "build",
+    "twine",
+]
+
+[project.scripts]
+aghistory = "antigravity_history.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/neo1027144-creator/antigravity-history"
+Repository = "https://github.com/neo1027144-creator/antigravity-history"
+Issues = "https://github.com/neo1027144-creator/antigravity-history/issues"
+Documentation = "https://github.com/neo1027144-creator/antigravity-history#readme"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
