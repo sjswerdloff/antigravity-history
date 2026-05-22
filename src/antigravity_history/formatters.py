@@ -9,8 +9,6 @@ import json
 import os
 import re
 from datetime import datetime
-from pathlib import Path
-from typing import Any
 
 
 # ════════════════════════════════
@@ -117,9 +115,9 @@ def _format_message_md(msg: dict) -> list[str]:
             exit_code = msg.get("exit_code")
             cwd_info = f" (in `{cwd}`)" if cwd else ""
             exit_info = f" → exit {exit_code}" if exit_code is not None else ""
-            lines.append(f"```bash")
+            lines.append("```bash")
             lines.append(content)
-            lines.append(f"```")
+            lines.append("```")
             if cwd_info or exit_info:
                 lines.append(f"*{cwd_info}{exit_info}*")
             # Command output
