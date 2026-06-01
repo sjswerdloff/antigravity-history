@@ -131,7 +131,10 @@ def _find_ports_macos(pid: int) -> list[int]:
     ports = []
     try:
         result = subprocess.run(
-            ["lsof", "-p", str(pid), "-i", "-P", "-n"], capture_output=True, text=True, timeout=10
+            ["lsof", "-a", "-p", str(pid), "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         for line in result.stdout.split("\n"):
             if "LISTEN" in line:
@@ -176,27 +179,42 @@ def find_all_endpoints(
 ) -> list[dict]:
     """Discover all available (port, csrf, pid) endpoints.
 
+    Port scanning and API validation run concurrently across servers
+    to avoid sequential lsof/API timeouts stacking up.
+
     Returns:
         [{"port": int, "csrf": str, "pid": int}, ...]
     """
     if manual_port and manual_token:
         return [{"port": manual_port, "csrf": manual_token, "pid": 0}]
 
+    import concurrent.futures
+
     from antigravity_history.api import call_api
 
-    endpoints = []
-    seen_ports = set()
-
-    for srv in servers:
+    def _probe_server(srv: dict) -> Optional[dict]:
+        """Find a working port for one server process."""
         ports = find_ports(srv["pid"])
         for port in ports:
-            if port in seen_ports:
-                continue
-            result = call_api(port, srv["csrf"], "GetAllCascadeTrajectories", timeout=5)
+            result = call_api(port, srv["csrf"], "GetAllCascadeTrajectories", timeout=3)
             if result is not None:
-                endpoints.append({"port": port, "csrf": srv["csrf"], "pid": srv["pid"]})
-                seen_ports.add(port)
-                break  # Only need one port per process
+                return {"port": port, "csrf": srv["csrf"], "pid": srv["pid"]}
+        return None
+
+    endpoints = []
+    seen_ports: set[int] = set()
+    max_workers = min(len(servers), 10) if servers else 1
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_probe_server, srv): srv for srv in servers}
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                result = future.result()
+                if result and result["port"] not in seen_ports:
+                    endpoints.append(result)
+                    seen_ports.add(result["port"])
+            except Exception:
+                pass
 
     return endpoints
 
