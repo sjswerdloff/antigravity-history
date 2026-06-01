@@ -138,55 +138,57 @@ def export(
     console.print(f"[dim]Field level: {level}[/dim]\n")
 
     endpoints = _discover_endpoints(port, token)
-
-    # Fetch conversation list from all LS instances (merge & deduplicate)
-    console.print("[dim]Fetching conversation list (scanning all workspaces)...[/dim]")
-    summaries, cascade_ep, failed_eps = get_all_trajectories_merged(endpoints)
-    indexed_count = len(summaries)
-    console.print(f"[dim]  Indexed conversations: {indexed_count}[/dim]")
-    if failed_eps:
-        console.print(f"[dim]  [yellow]LS endpoints failed: {len(failed_eps)}[/yellow][/dim]")
-
     default_ep = endpoints[0]
 
-    # Scan .pb files to find unindexed conversations
-    conv_dir = os.path.expanduser("~/.gemini/antigravity/conversations")
-    if os.path.isdir(conv_dir):
-        pb_files = [f for f in os.listdir(conv_dir) if f.endswith(".pb")]
-        unindexed_count = 0
-        for f in pb_files:
-            cid = f.replace(".pb", "")
-            if cid not in summaries:
-                summaries[cid] = {
-                    "summary": f"[unindexed] {cid[:8]}...",
-                    "stepCount": 1000,
-                }
-                cascade_ep[cid] = {"port": default_ep["port"], "csrf": default_ep["csrf"]}
-                unindexed_count += 1
-        if unindexed_count:
-            console.print(f"[dim]  Unindexed .pb files: {unindexed_count}[/dim]")
-        console.print(f"[dim]  Total to export: {len(summaries)}[/dim]")
-
-    # Specified IDs: ensure they exist, then filter to only those IDs
     if ids:
+        # Fast path: skip full summary fetch, go directly to requested IDs.
+        # Multiple --id flags are supported (e.g. --id UUID1 --id UUID2).
+        console.print(f"[dim]Exporting {len(ids)} specified conversation(s)...[/dim]")
+        summaries: dict[str, dict] = {}
+        cascade_ep: dict[str, dict] = {}
         for cid in ids:
-            if cid not in summaries:
-                summaries[cid] = {
-                    "summary": f"[on-demand] {cid[:8]}...",
-                    "stepCount": 1000,
-                }
-                cascade_ep[cid] = {"port": default_ep["port"], "csrf": default_ep["csrf"]}
-        summaries = {k: v for k, v in summaries.items() if k in ids}
+            summaries[cid] = {
+                "summary": f"[on-demand] {cid[:8]}...",
+                "stepCount": 1000,
+            }
+            cascade_ep[cid] = {"port": default_ep["port"], "csrf": default_ep["csrf"]}
+        failed_eps: list[tuple] = []
+    else:
+        # Full path: fetch all conversations, scan .pb files, apply filters
+        console.print("[dim]Fetching conversation list (scanning all workspaces)...[/dim]")
+        summaries, cascade_ep, failed_eps = get_all_trajectories_merged(endpoints)
+        indexed_count = len(summaries)
+        console.print(f"[dim]  Indexed conversations: {indexed_count}[/dim]")
+        if failed_eps:
+            console.print(f"[dim]  [yellow]LS endpoints failed: {len(failed_eps)}[/yellow][/dim]")
 
-    # Filter today's conversations
-    if today:
-        today_str = date.today().isoformat()
-        summaries = {
-            k: v
-            for k, v in summaries.items()
-            if v.get("lastModifiedTime", "").startswith(today_str)
-        }
-        console.print(f"[dim]  Today's conversations: {len(summaries)}[/dim]")
+        # Scan .pb files to find unindexed conversations
+        conv_dir = os.path.expanduser("~/.gemini/antigravity/conversations")
+        if os.path.isdir(conv_dir):
+            pb_files = [f for f in os.listdir(conv_dir) if f.endswith(".pb")]
+            unindexed_count = 0
+            for f in pb_files:
+                cid = f.replace(".pb", "")
+                if cid not in summaries:
+                    summaries[cid] = {
+                        "summary": f"[unindexed] {cid[:8]}...",
+                        "stepCount": 1000,
+                    }
+                    cascade_ep[cid] = {"port": default_ep["port"], "csrf": default_ep["csrf"]}
+                    unindexed_count += 1
+            if unindexed_count:
+                console.print(f"[dim]  Unindexed .pb files: {unindexed_count}[/dim]")
+            console.print(f"[dim]  Total to export: {len(summaries)}[/dim]")
+
+        # Filter today's conversations
+        if today:
+            today_str = date.today().isoformat()
+            summaries = {
+                k: v
+                for k, v in summaries.items()
+                if v.get("lastModifiedTime", "").startswith(today_str)
+            }
+            console.print(f"[dim]  Today's conversations: {len(summaries)}[/dim]")
 
     if not summaries:
         console.print("[yellow]No conversations match the criteria.[/yellow]")
