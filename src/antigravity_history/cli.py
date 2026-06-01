@@ -119,7 +119,9 @@ def export(
     today: bool = typer.Option(False, "--today", help="Export only today's conversations"),
     ids: Optional[list[str]] = typer.Option(None, "--id", help="Export specific cascade ID(s)"),
     thinking: bool = typer.Option(False, "--thinking", help="Include AI thinking process"),
-    full: bool = typer.Option(False, "--full", help="Include all extended fields (thinking+diff+output)"),
+    full: bool = typer.Option(
+        False, "--full", help="Include all extended fields (thinking+diff+output)"
+    ),
     port: Optional[int] = typer.Option(None, "--port", help="Manually specify port"),
     token: Optional[str] = typer.Option(None, "--token", help="Manually specify CSRF token"),
 ):
@@ -178,7 +180,11 @@ def export(
     # Filter today's conversations
     if today:
         today_str = date.today().isoformat()
-        summaries = {k: v for k, v in summaries.items() if v.get("lastModifiedTime", "").startswith(today_str)}
+        summaries = {
+            k: v
+            for k, v in summaries.items()
+            if v.get("lastModifiedTime", "").startswith(today_str)
+        }
         console.print(f"[dim]  Today's conversations: {len(summaries)}[/dim]")
 
     if not summaries:
@@ -243,8 +249,8 @@ def export(
     # Write JSON
     if format in ("json", "all") and all_records:
         json_path = output_dir / "conversations_export.json"
-        with open(json_path, "w", encoding="utf-8") as f:
-            f.write(format_json(all_records))
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(format_json(all_records))
 
     # Write export report
     _write_export_report(output_dir, exported_list, failed_list, failed_eps)
@@ -266,7 +272,7 @@ def _write_export_report(
     output_dir: Path,
     exported: list[tuple],
     failed: list[tuple],
-    failed_endpoints: list[tuple] = None,
+    failed_endpoints: Optional[list[tuple]] = None,
 ):
     """Write export_report.txt summarizing the export results."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -344,7 +350,11 @@ def list_conversations(
 
     if today:
         today_str = date.today().isoformat()
-        summaries = {k: v for k, v in summaries.items() if v.get("lastModifiedTime", "").startswith(today_str)}
+        summaries = {
+            k: v
+            for k, v in summaries.items()
+            if v.get("lastModifiedTime", "").startswith(today_str)
+        }
 
     sorted_items = sorted(
         summaries.items(),
@@ -448,7 +458,9 @@ def recover(
         result = get_trajectory_steps(p, c, cascade_id, step_count=5)
         if result:
             activated.append(cascade_id)
-            console.print(f"  [green]Activated[/green] {cascade_id[:8]}... ({size_kb}KB, {len(result)}+ steps)")
+            console.print(
+                f"  [green]Activated[/green] {cascade_id[:8]}... ({size_kb}KB, {len(result)}+ steps)"
+            )
         else:
             failed.append(cascade_id)
             console.print(f"  [red]Failed[/red] {cascade_id[:8]}... ({size_kb}KB)")
@@ -460,7 +472,9 @@ def recover(
     if dry_run:
         unindexed = len(pb_files) - len(already_indexed)
         console.print(f"  Unindexed: {unindexed}")
-        console.print("\n[yellow]Dry run mode. Remove --dry-run to perform actual recovery.[/yellow]")
+        console.print(
+            "\n[yellow]Dry run mode. Remove --dry-run to perform actual recovery.[/yellow]"
+        )
     else:
         console.print(f"  [green]Newly activated: {len(activated)}[/green]")
         if failed:
