@@ -131,7 +131,10 @@ def _find_ports_macos(pid: int) -> list[int]:
     ports = []
     try:
         result = subprocess.run(
-            ["lsof", "-p", str(pid), "-i", "-P", "-n"], capture_output=True, text=True, timeout=10
+            ["lsof", "-a", "-p", str(pid), "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         for line in result.stdout.split("\n"):
             if "LISTEN" in line:
