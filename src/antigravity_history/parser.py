@@ -79,7 +79,7 @@ def _parse_step(
 
     # ── View file ──
     if step_type == "CORTEX_STEP_TYPE_VIEW_FILE":
-        return _parse_view_file(step, include_thinking)
+        return _parse_view_file(step, include_thinking, include_full)
 
     # ── File search ──
     if step_type == "CORTEX_STEP_TYPE_FIND":
@@ -88,9 +88,7 @@ def _parse_step(
 
     # ── List directory ──
     if step_type == "CORTEX_STEP_TYPE_LIST_DIRECTORY":
-        ld = step.get("listDirectory", {})
-        path = ld.get("directoryPath", ld.get("path", ""))
-        return {"role": "tool", "tool_name": "list_dir", "content": path or "[List Directory]"}
+        return _parse_list_directory(step, include_full)
 
     # ── Web search ──
     if step_type == "CORTEX_STEP_TYPE_SEARCH_WEB":
@@ -261,13 +259,15 @@ def _parse_run_command(
     return msg
 
 
-def _parse_view_file(step: dict, include_thinking: bool) -> Optional[dict[str, Any]]:
+def _parse_view_file(
+    step: dict, include_thinking: bool, include_full: bool
+) -> Optional[dict[str, Any]]:
     vf = step.get("viewFile", {})
     path = vf.get("absolutePathUri", vf.get("filePath", vf.get("path", "")))
     if not path:
         return None
 
-    msg = {"role": "tool", "tool_name": "view_file", "content": path}
+    msg: dict[str, Any] = {"role": "tool", "tool_name": "view_file", "content": path}
 
     # thinking level: file size info
     if include_thinking:
@@ -278,7 +278,49 @@ def _parse_view_file(step: dict, include_thinking: bool) -> Optional[dict[str, A
         if num_bytes:
             msg["num_bytes"] = num_bytes
 
-    # Note: never export viewFile.content (full file content, too large and redundant)
+    # full level: include file content
+    if include_full:
+        file_content = vf.get("content")
+        if file_content:
+            msg["file_content"] = file_content
+
+    # error info (permission denied, etc.)
+    error = step.get("error", {})
+    if error.get("userErrorMessage"):
+        msg["error"] = error["userErrorMessage"]
+
+    return msg
+
+
+def _parse_list_directory(step: dict, include_full: bool) -> Optional[dict[str, Any]]:
+    ld = step.get("listDirectory", {})
+    path = ld.get("directoryPathUri", ld.get("directoryPath", ld.get("path", "")))
+
+    msg: dict[str, Any] = {
+        "role": "tool",
+        "tool_name": "list_dir",
+        "content": path or "[List Directory]",
+    }
+
+    # full level: include directory listing
+    if include_full:
+        results = ld.get("results", [])
+        if results:
+            entries = []
+            for entry in results:
+                name = entry.get("name", "")
+                if entry.get("isDir"):
+                    entries.append(f"{name}/")
+                else:
+                    size = entry.get("sizeBytes", "")
+                    entries.append(f"{name} ({size}B)" if size else name)
+            msg["listing"] = entries
+
+    # error info (permission denied, etc.)
+    error = step.get("error", {})
+    if error.get("userErrorMessage"):
+        msg["error"] = error["userErrorMessage"]
+
     return msg
 
 

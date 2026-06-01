@@ -162,11 +162,40 @@ def _format_message_md(msg: dict) -> list[str]:
                     parts.append(f"{num_bytes} bytes")
                 size_info = f" ({', '.join(parts)})"
             lines.append(f"`{content}`{size_info}")
+            # full level: file content
+            file_content = msg.get("file_content")
+            if file_content:
+                lines.append("")
+                lines.append("<details><summary>📄 File Content</summary>")
+                lines.append("")
+                lines.append("```")
+                if len(file_content) > 5000:
+                    lines.append(file_content[:5000])
+                    lines.append(f"... (truncated, {len(file_content)} chars total)")
+                else:
+                    lines.append(file_content)
+                lines.append("```")
+                lines.append("")
+                lines.append("</details>")
+
+        elif tool_name == "list_dir":
+            lines.append(f"`{content}`")
+            # full level: directory listing
+            listing = msg.get("listing")
+            if listing:
+                lines.append("")
+                for entry in listing:
+                    lines.append(f"- `{entry}`")
 
         else:
             # Other tool types
             if content:
                 lines.append(f"`{content[:500]}`")
+
+        # Error info (permission denied, etc.) — applies to any tool type
+        error = msg.get("error")
+        if error:
+            lines.append(f"*⚠️ {error}*")
 
         lines.append("")
 
