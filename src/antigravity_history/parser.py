@@ -285,7 +285,7 @@ def _parse_view_file(
             msg["file_content"] = file_content
 
     # error info (permission denied, etc.)
-    error = step.get("error", {})
+    error = step.get("error") or {}
     if error.get("userErrorMessage"):
         msg["error"] = error["userErrorMessage"]
 
@@ -317,7 +317,7 @@ def _parse_list_directory(step: dict, include_full: bool) -> Optional[dict[str, 
             msg["listing"] = entries
 
     # error info (permission denied, etc.)
-    error = step.get("error", {})
+    error = step.get("error") or {}
     if error.get("userErrorMessage"):
         msg["error"] = error["userErrorMessage"]
 

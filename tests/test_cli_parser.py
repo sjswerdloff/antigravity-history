@@ -1,6 +1,7 @@
 import json
 import pytest
-from antigravity_history.cli_parser import parse_transcript_line
+import os
+from antigravity_history.cli_parser import parse_transcript_line, export_session
 
 def test_parse_valid_user_input():
     line = json.dumps({
@@ -104,3 +105,39 @@ def test_parse_unknown_source_is_error():
     msg, is_error = parse_transcript_line(line)
     assert is_error
     assert msg is None
+
+def test_export_session_dedup(tmp_path):
+    # Create a dummy transcript file
+    transcript_file = tmp_path / "transcript.jsonl"
+    line = json.dumps({
+        "source": "USER_EXPLICIT",
+        "type": "USER_INPUT",
+        "content": "test message",
+        "created_at": "2026-06-25T10:00:00Z"
+    })
+    transcript_file.write_text(line + "\n")
+    
+    output_file = tmp_path / "export.json"
+    cascade_id = "test-cascade-uuid-1234"
+    
+    # First export
+    export_session(str(transcript_file), str(output_file), cascade_id)
+    
+    assert output_file.exists()
+    with open(output_file) as f:
+        data = json.load(f)
+        
+    assert len(data) == 1
+    assert data[0]["cascade_id"] == cascade_id
+    assert len(data[0]["messages"]) == 1
+    
+    # Second export (should de-dup / replace)
+    export_session(str(transcript_file), str(output_file), cascade_id)
+    
+    with open(output_file) as f:
+        data = json.load(f)
+        
+    # Still 1 conversation, not 2
+    assert len(data) == 1
+    assert data[0]["cascade_id"] == cascade_id
+    assert len(data[0]["messages"]) == 1
