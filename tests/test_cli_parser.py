@@ -54,6 +54,24 @@ def test_parse_tool_response():
     assert msg["role"] == "tool"
     assert msg["content"] == "File contents"
 
+def test_parse_cli_transcript_tool_result_format():
+    # Representative fixture proving that the CLI format (where tool results are raw strings
+    # dumped into the 'content' field under source=MODEL, type=GENERIC) is correctly
+    # mapped to role=tool with the full output intact. This enforces Two-Parser Coherence.
+    line = json.dumps({
+        "step_index": 1234,
+        "source": "MODEL",
+        "type": "GENERIC",
+        "status": "DONE",
+        "created_at": "2026-06-25T02:04:13Z",
+        "content": "Created At: 2026-06-25T02:04:13Z\nCompleted At: 2026-06-25T02:04:13Z\nTask: 1234\nStatus: RUNNING\nLog: /some/path.log\n"
+    })
+    msg, error_reason = parse_transcript_line(line)
+    assert not error_reason
+    assert msg["role"] == "tool"
+    assert "Log: /some/path.log" in msg["content"]
+
+
 def test_parse_ephemeral_message_ignored():
     line = json.dumps({
         "source": "SYSTEM",
