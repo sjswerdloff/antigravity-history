@@ -69,7 +69,7 @@ def parse_transcript_line(line: str) -> Tuple[Dict[str, Any] | None, str | None]
         if match:
             msg["person_id"] = match.group(1)
 
-    return msg, False
+    return msg, None
 
 
 def parse_transcript(transcript_path: str, cascade_id: str) -> Tuple[Dict[str, Any], int]:
