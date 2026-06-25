@@ -10,12 +10,12 @@ file_msg_regex = re.compile(r"From:\s+([a-z0-9\-]+)\s+(?:sent )?at\s+")
 class TranscriptParserError(Exception):
     pass
 
-def parse_transcript_line(line: str) -> Tuple[Dict[str, Any] | None, bool]:
-    """Parse a single JSONL line into a message dict. Returns (msg, is_error)."""
+def parse_transcript_line(line: str) -> Tuple[Dict[str, Any] | None, str | None]:
+    """Parse a single JSONL line into a message dict. Returns (msg, error_reason)."""
     try:
         step = json.loads(line)
-    except json.JSONDecodeError:
-        return None, True
+    except json.JSONDecodeError as e:
+        return None, f"JSON decode error: {e}"
         
     source = step.get("source", "")
     step_type = step.get("type", "")
@@ -34,17 +34,17 @@ def parse_transcript_line(line: str) -> Tuple[Dict[str, Any] | None, bool]:
             role = "tool"
     elif source == "SYSTEM":
         if step_type in ["EPHEMERAL_MESSAGE", "CHECKPOINT", "CONVERSATION_HISTORY"]:
-            return None, False # Skip gracefully
+            return None, None # Skip gracefully
         role = "tool"
         
     if role is None:
-        return None, True # Unknown role mapping is an error
+        return None, f"Unknown source/type mapping: source={source}, type={step_type}" # Unknown role mapping is an error
 
     if not content and tool_calls:
         content = json.dumps(tool_calls, indent=2)
         
     if not content and not thinking:
-        return None, False # Nothing to ingest
+        return None, None # Nothing to ingest
         
     msg = {"role": role, "content": content, "timestamp": timestamp}
     
@@ -69,9 +69,10 @@ def parse_transcript(transcript_path: str, cascade_id: str) -> Tuple[Dict[str, A
     skipped_lines = 0
     
     with open(transcript_path, "r") as f:
-        for line in f:
-            msg, is_error = parse_transcript_line(line)
-            if is_error:
+        for i, line in enumerate(f, 1):
+            msg, error_reason = parse_transcript_line(line)
+            if error_reason:
+                print(f"WARNING: Skipped line {i}: {error_reason}")
                 skipped_lines += 1
             elif msg is not None:
                 messages.append(msg)
@@ -98,7 +99,7 @@ def export_session(transcript_path: str, output_path: str, cascade_id: str) -> N
             with open(output_path, "r") as f:
                 existing_data = json.load(f)
         except Exception as e:
-            print(f"Error reading existing export: {e}")
+            raise RuntimeError(f"Error reading existing export: {e}. Aborting to prevent data loss.") from e
             
     # Remove existing entry for this cascade_id
     existing_data = [conv for conv in existing_data if conv.get("cascade_id") != cascade_id]

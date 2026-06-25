@@ -312,8 +312,8 @@ def _parse_list_directory(step: dict, include_full: bool) -> Optional[dict[str, 
                 if entry.get("isDir"):
                     entries.append(f"{name}/")
                 else:
-                    size = entry.get("sizeBytes", "")
-                    entries.append(f"{name} ({size}B)" if size else name)
+                    size = entry.get("sizeBytes")
+                    entries.append(f"{name} ({size}B)" if size is not None else name)
             msg["listing"] = entries
 
     # error info (permission denied, etc.)
