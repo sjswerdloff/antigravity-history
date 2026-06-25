@@ -35,6 +35,9 @@ def parse_transcript_line(line: str) -> Tuple[Dict[str, Any] | None, str | None]
     elif source == "SYSTEM":
         if step_type in ["EPHEMERAL_MESSAGE", "CHECKPOINT", "CONVERSATION_HISTORY"]:
             return None, None # Skip gracefully
+        # keep role=tool: kindled-memory ingestor searches tool_result blocks for the
+        # From: header and reclassifies to user downstream; exporting as user makes
+        # it invisible to the ingestor
         role = "tool"
         
     if role is None:
