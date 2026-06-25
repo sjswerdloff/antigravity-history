@@ -69,7 +69,7 @@ def test_parse_cli_transcript_tool_result_format():
     msg, error_reason = parse_transcript_line(line)
     assert not error_reason
     assert msg["role"] == "tool"
-    assert "Log: /some/path.log" in msg["content"]
+    assert msg["content"] == "Created At: 2026-06-25T02:04:13Z\nCompleted At: 2026-06-25T02:04:13Z\nTask: 1234\nStatus: RUNNING\nLog: /some/path.log\n"
 
 
 def test_parse_ephemeral_message_ignored():
