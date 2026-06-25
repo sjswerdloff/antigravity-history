@@ -85,12 +85,12 @@ def test_parse_person_id_attribution():
     line = json.dumps({
         "source": "MODEL",
         "type": "VIEW_FILE",
-        "content": "From: cora-2f1e43dc at 2026-06-25T13:45\nTopic: messages\n\nHello!",
+        "content": "From: cora-2f1e43dc sent at 2026-06-25T13:45\nTopic: messages\n\nHello!",
         "created_at": "2026-06-25T10:06:00Z"
     })
     msg, is_error = parse_transcript_line(line)
     assert not is_error
-    assert msg["role"] == "user"
+    assert msg["role"] == "tool"
     assert msg["person_id"] == "cora-2f1e43dc"
     assert "Hello!" in msg["content"]
 

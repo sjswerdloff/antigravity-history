@@ -1,10 +1,11 @@
 import json
+import os
 import re
 from typing import Dict, List, Any, Tuple
 
 # Regexes for extracting person_id
 msg_regex = re.compile(r"You have a new message from ([a-z0-9\-]+)\. Please read file")
-file_msg_regex = re.compile(r"From: ([a-z0-9\-]+) at ")
+file_msg_regex = re.compile(r"From:\s+([a-z0-9\-]+)\s+(?:sent )?at\s+")
 
 class TranscriptParserError(Exception):
     pass
@@ -59,7 +60,6 @@ def parse_transcript_line(line: str) -> Tuple[Dict[str, Any] | None, bool]:
         match = file_msg_regex.search(content)
         if match:
             msg["person_id"] = match.group(1)
-            msg["role"] = "user"
             
     return msg, False
 
